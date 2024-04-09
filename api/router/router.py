@@ -153,5 +153,16 @@ def get_available_slots(agent_id:str):
         "available_slots": available_slots
     }
 
+@router.get('/getServiceList')
+def get_service_list():
+    service_data = supabase.table('service').select('*').execute()
+    service_data = service_data.data
+    service_list = []
+
+    for value in service_data:
+        
+        data = {value['service_name']:{"description":value['description'],"agent_info":value['agents_opted']['agent_info']}}
+        service_list.append(data)
+    return data
 # print(get_available_slots('b6ba6831-f549-407c-bce4-3e97ad2771d0'))
 
