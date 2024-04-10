@@ -165,4 +165,4 @@ def get_service_list():
         service_list.append(data)
     return data
 # print(get_available_slots('b6ba6831-f549-407c-bce4-3e97ad2771d0'))
-
+#
