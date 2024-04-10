@@ -40,7 +40,7 @@ class loggerMiddleware(BaseHTTPMiddleware):
 app.add_middleware(loggerMiddleware)
 
 # Include routers (assuming these are imported correctly)
-app.include_router(router.router, prefix='/SAGAX/BotResponse',tags=["Sagax AI"])
+app.include_router(router.router, prefix='/GENPACT/appointment-booking',tags=["Sagax AI"])
 
 
 

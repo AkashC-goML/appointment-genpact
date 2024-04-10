@@ -8,6 +8,14 @@ from openai import OpenAI
 import os
 import json
 from dotenv import load_dotenv
+# from log import setup_logger
+from typing import Dict, List
+
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+
 load_dotenv()
 
 router = APIRouter()
@@ -166,3 +174,72 @@ def get_service_list():
     return data
 # print(get_available_slots('b6ba6831-f549-407c-bce4-3e97ad2771d0'))
 #
+class EmailInput(BaseModel):
+    sender_email: str
+    sender_password: str
+    receiver_email: str
+    subject: str
+    message: str
+## Send an email to the user
+@router.post("/send_email/")
+def send_email_route(email_input: EmailInput):
+    try:
+        # Set up the SMTP server
+        smtp_server = smtplib.SMTP('smtp.gmail.com', 587)
+        smtp_server.starttls()
+        smtp_server.login(email_input.sender_email, email_input.sender_password)
+
+        # Create message container - the correct MIME type is multipart/alternative.
+        msg = MIMEMultipart('alternative')
+        msg['From'] = email_input.sender_email
+        msg['To'] = email_input.receiver_email
+        msg['Subject'] = email_input.subject
+
+        # Attach plain text message to email
+        msg.attach(MIMEText(email_input.message, 'plain'))
+
+        # Send the message via the SMTP server
+        smtp_server.sendmail(email_input.sender_email, email_input.receiver_email, msg.as_string())
+
+        # Close the SMTP server
+        smtp_server.quit()
+        
+        return {"message": "Email sent successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to send email: " + str(e))
+
+
+## Get the list of services
+@router.get('/getServiceList')
+def get_service_list():
+    service_data = supabase.table('service').select('*').execute()
+    service_data = service_data.data
+    service_list = []
+
+    for value in service_data:
+        
+        data = {value['service_name']:{"description":value['description'],"agent_info":value['agents_opted']['agent_info']}}
+        service_list.append(data)
+    return data
+
+
+## Get the booked slots for the given agent id
+@router.get("/booked-slots/{agent_id}")
+def booked_slots(agent_id: int, sample_data: Dict):
+    booked_slots = {}
+    for date, slots in sample_data['available_slots'].items():
+        for slot in slots:
+            if slot['status'] == 'booked':
+                booked_slots.setdefault(date, []).append(slot)
+    return {'agent_id': agent_id, 'booked_slots': booked_slots}
+
+
+## Get the available slots for the given agent id
+@router.get("/available-slots/{agent_id}")
+def available_slots(agent_id: int, sample_data: Dict):
+    available_slots = {}
+    for date, slots in sample_data['available_slots'].items():
+        available = [slot for slot in slots if slot['status'] == 'available']
+        if available:
+            available_slots[date] = available
+    return {'agent_id': agent_id, 'available_slots': available_slots}
